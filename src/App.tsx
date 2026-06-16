@@ -429,18 +429,21 @@ function App() {
     pulseTimerRef.current = window.setTimeout(() => setPulse(false), 700)
   }
 
-  function completeSession() {
+  function completeSession(options: { recordProgress?: boolean } = {}) {
+    const shouldRecordProgress = options.recordProgress ?? true
     const completedMode = mode
     const completedDuration = Math.round(getDurationSeconds(completedMode, settings) / 60)
 
-    persistSession({
-      mode: completedMode,
-      durationMin: completedDuration,
-      completedAt: new Date().toLocaleTimeString(locale === 'ja' ? 'ja-JP' : 'en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
-    })
+    if (shouldRecordProgress) {
+      persistSession({
+        mode: completedMode,
+        durationMin: completedDuration,
+        completedAt: new Date().toLocaleTimeString(locale === 'ja' ? 'ja-JP' : 'en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+      })
+    }
 
     if (settings.soundEnabled) {
       beep(completedMode)
@@ -450,10 +453,12 @@ function App() {
     setStatus('idle')
 
     if (completedMode === 'focus') {
-      const nextFocusCount = focusCompletedToday + 1
-      setFocusCompletedToday(nextFocusCount)
-      setQuoteIndex((current) => (current + 1) % STOIC_QUOTES.length)
-      updateStreak()
+      if (shouldRecordProgress) {
+        const nextFocusCount = focusCompletedToday + 1
+        setFocusCompletedToday(nextFocusCount)
+        setQuoteIndex((current) => (current + 1) % STOIC_QUOTES.length)
+        updateStreak()
+      }
 
       const nextCycleCount = (cycleCount + 1) % CYCLE_LENGTH
       const nextMode = nextCycleCount === 0 ? 'longBreak' : 'shortBreak'
@@ -490,7 +495,7 @@ function App() {
   }
 
   function handleSkip() {
-    completeSession()
+    completeSession({ recordProgress: false })
   }
 
   const totalDuration = getDurationSeconds(mode, settings)
