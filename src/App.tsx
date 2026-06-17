@@ -483,7 +483,6 @@ function App() {
     const interval = window.setInterval(() => {
       setTimeLeft((current) => {
         if (current <= 1) {
-          window.clearInterval(interval)
           return 0
         }
         return current - 1
