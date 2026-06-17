@@ -429,8 +429,9 @@ function App() {
     pulseTimerRef.current = window.setTimeout(() => setPulse(false), 700)
   }
 
-  function completeSession(options: { recordProgress?: boolean } = {}) {
+  function completeSession(options: { recordProgress?: boolean; autoStartNext?: boolean } = {}) {
     const shouldRecordProgress = options.recordProgress ?? true
+    const autoStartNext = options.autoStartNext ?? true
     const completedMode = mode
     const completedDuration = Math.round(getDurationSeconds(completedMode, settings) / 60)
 
@@ -450,7 +451,6 @@ function App() {
     }
 
     triggerPulse()
-    setStatus('idle')
 
     if (completedMode === 'focus') {
       if (shouldRecordProgress) {
@@ -462,15 +462,21 @@ function App() {
 
       const nextCycleCount = (cycleCount + 1) % CYCLE_LENGTH
       const nextMode = nextCycleCount === 0 ? 'longBreak' : 'shortBreak'
+      const nextDuration = getDurationSeconds(nextMode, settings)
 
       setCycleCount(nextCycleCount)
       setMode(nextMode)
-      setTimeLeft(getDurationSeconds(nextMode, settings))
+      setTimeLeft(nextDuration)
+      setStatus(autoStartNext ? 'running' : 'idle')
       return
     }
 
-    setMode('focus')
-    setTimeLeft(getDurationSeconds('focus', settings))
+    const nextMode: TimerMode = 'focus'
+    const nextDuration = getDurationSeconds(nextMode, settings)
+
+    setMode(nextMode)
+    setTimeLeft(nextDuration)
+    setStatus(autoStartNext ? 'running' : 'idle')
   }
 
   function switchMode(nextMode: TimerMode) {
