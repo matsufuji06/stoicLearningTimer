@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Sitemap for Stoic Learning Timer
+Sitemap: https://matsufuji06.github.io/stoicLearningTimer/sitemap.xml

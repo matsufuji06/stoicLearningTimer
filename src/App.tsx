@@ -18,6 +18,13 @@ type SessionLog = {
   completedAt: string
 }
 
+type SeoCopy = {
+  title: string
+  description: string
+  keywords: string
+  ogLocale: 'ja_JP' | 'en_US'
+}
+
 const STORAGE_KEYS = {
   settings: 'stoic-pomodoro-settings',
   sessions: 'stoic-pomodoro-sessions',
@@ -242,6 +249,26 @@ const COPY = {
 } as const
 
 const CYCLE_LENGTH = 4
+const BASE_URL = 'https://matsufuji06.github.io/stoicLearningTimer/'
+
+const SEO_COPY: Record<Locale, SeoCopy> = {
+  ja: {
+    title: 'ストイック学習タイマー | ポモドーロで集中力を高める',
+    description:
+      'ストイック学習タイマーは、ポモドーロ法で集中と休憩を最適化する無料の学習タイマーです。勉強・資格学習・在宅ワークの集中力維持に役立ちます。',
+    keywords:
+      'ポモドーロタイマー,学習タイマー,勉強 タイマー,集中力,作業効率,ストイック,study timer,pomodoro timer',
+    ogLocale: 'ja_JP',
+  },
+  en: {
+    title: 'Stoic Learning Timer | Free Pomodoro Study Timer',
+    description:
+      'Stoic Learning Timer is a free Pomodoro study timer for deep work, exam prep, and consistent learning habits in English and Japanese.',
+    keywords:
+      'pomodoro timer,study timer,focus timer,deep work timer,learning productivity,exam study timer,bilingual timer',
+    ogLocale: 'en_US',
+  },
+}
 
 function getTodayStamp(date = new Date()) {
   return date.toISOString().slice(0, 10)
@@ -257,6 +284,67 @@ function formatTime(value: number) {
   const mins = Math.floor(value / 60)
   const secs = value % 60
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
+}
+
+function setMetaTag(attr: 'name' | 'property', key: string, content: string) {
+  let element = document.head.querySelector<HTMLMetaElement>(`meta[${attr}="${key}"]`)
+  if (!element) {
+    element = document.createElement('meta')
+    element.setAttribute(attr, key)
+    document.head.appendChild(element)
+  }
+  element.setAttribute('content', content)
+}
+
+function setHeadLink(rel: string, href: string, hreflang?: string) {
+  const selector = hreflang
+    ? `link[rel="${rel}"][hreflang="${hreflang}"]`
+    : `link[rel="${rel}"]:not([hreflang])`
+  let element = document.head.querySelector<HTMLLinkElement>(selector)
+  if (!element) {
+    element = document.createElement('link')
+    element.setAttribute('rel', rel)
+    if (hreflang) {
+      element.setAttribute('hreflang', hreflang)
+    }
+    document.head.appendChild(element)
+  }
+  element.setAttribute('href', href)
+}
+
+function updateSeoSchema(locale: Locale, targetUrl: string) {
+  const description = SEO_COPY[locale].description
+  const scriptId = 'seo-schema-webapp'
+  let script = document.getElementById(scriptId) as HTMLScriptElement | null
+
+  if (!script) {
+    script = document.createElement('script')
+    script.id = scriptId
+    script.type = 'application/ld+json'
+    document.head.appendChild(script)
+  }
+
+  script.textContent = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    name: 'Stoic Learning Timer',
+    applicationCategory: 'ProductivityApplication',
+    operatingSystem: 'Web',
+    inLanguage: ['ja', 'en'],
+    description,
+    url: targetUrl,
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'JPY',
+    },
+    featureList: [
+      'Pomodoro focus and break cycles',
+      'Daily session logs',
+      'Streak tracking',
+      'Bilingual interface',
+    ],
+  })
 }
 
 function getDurationSeconds(mode: TimerMode, settings: Settings) {
@@ -302,6 +390,12 @@ function beep(kind: TimerMode) {
 
 function App() {
   const [locale, setLocale] = useState<Locale>(() => {
+    const params = new URLSearchParams(window.location.search)
+    const queryLocale = params.get('lang')
+    if (queryLocale === 'ja' || queryLocale === 'en') {
+      return queryLocale
+    }
+
     const stored = localStorage.getItem(STORAGE_KEYS.locale)
     return stored === 'ja' || stored === 'en' ? stored : 'ja'
   })
@@ -357,6 +451,30 @@ function App() {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.locale, locale)
     document.documentElement.lang = locale
+
+    const nextUrl = new URL(window.location.href)
+    nextUrl.searchParams.set('lang', locale)
+    window.history.replaceState({}, '', nextUrl)
+
+    const localizedUrl = nextUrl.toString()
+    const seo = SEO_COPY[locale]
+
+    document.title = seo.title
+    setMetaTag('name', 'description', seo.description)
+    setMetaTag('name', 'keywords', seo.keywords)
+    setMetaTag('property', 'og:title', seo.title)
+    setMetaTag('property', 'og:description', seo.description)
+    setMetaTag('property', 'og:locale', seo.ogLocale)
+    setMetaTag('property', 'og:url', localizedUrl)
+    setMetaTag('name', 'twitter:title', seo.title)
+    setMetaTag('name', 'twitter:description', seo.description)
+
+    setHeadLink('canonical', localizedUrl)
+    setHeadLink('alternate', `${BASE_URL}?lang=ja`, 'ja')
+    setHeadLink('alternate', `${BASE_URL}?lang=en`, 'en')
+    setHeadLink('alternate', BASE_URL, 'x-default')
+
+    updateSeoSchema(locale, localizedUrl)
   }, [locale])
 
   useEffect(() => {
@@ -680,6 +798,42 @@ function App() {
           </section>
         </aside>
       </main>
+
+      <section className="seo-content" aria-label={locale === 'ja' ? 'SEO向け説明' : 'SEO summary'}>
+        <h2>
+          {locale === 'ja'
+            ? 'ポモドーロ学習タイマーで集中習慣をつくる'
+            : 'Build a consistent focus habit with a Pomodoro study timer'}
+        </h2>
+        <p>
+          {locale === 'ja'
+            ? 'ストイック学習タイマーは、25分・50分の集中モードと休憩モードを切り替えながら、学習や作業のリズムを整える無料Webアプリです。'
+            : 'Stoic Learning Timer is a free web-based Pomodoro timer with 25 and 50 minute focus sessions, short breaks, and long breaks for deep work.'}
+        </p>
+        <p>
+          {locale === 'ja'
+            ? '日次ログ、継続日数、規律スコアを可視化し、資格勉強・受験対策・プログラミング学習・リモートワークの集中力維持をサポートします。'
+            : 'It helps students and professionals stay consistent with daily logs, streak tracking, and discipline score metrics for exams, coding, and remote work.'}
+        </p>
+        <h3>{locale === 'ja' ? '主な機能' : 'Key features'}</h3>
+        <ul>
+          <li>
+            {locale === 'ja'
+              ? 'ポモドーロサイクル（集中・短休憩・長休憩）'
+              : 'Pomodoro cycle control (focus, short break, long break)'}
+          </li>
+          <li>
+            {locale === 'ja'
+              ? '日本語・英語のバイリンガル表示'
+              : 'Bilingual UI in Japanese and English'}
+          </li>
+          <li>
+            {locale === 'ja'
+              ? '学習ログ、継続日数、日次振り返り'
+              : 'Session logs, streak history, and daily review signals'}
+          </li>
+        </ul>
+      </section>
 
       {(showSettings || showLog) && (
         <div

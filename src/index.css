@@ -422,6 +422,41 @@ button {
   transform: translateY(-50%);
 }
 
+.seo-content {
+  position: relative;
+  z-index: 1;
+  max-width: 1180px;
+  margin: 22px auto 0;
+  padding: 20px 24px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 244, 229, 0.08);
+  background: rgba(22, 20, 18, 0.64);
+}
+
+.seo-content h2,
+.seo-content h3 {
+  margin: 0;
+  color: #f4ecde;
+}
+
+.seo-content h3 {
+  margin-top: 12px;
+  font-size: 1.05rem;
+}
+
+.seo-content p {
+  margin: 10px 0 0;
+  color: #cec2b1;
+  line-height: 1.68;
+}
+
+.seo-content ul {
+  margin: 10px 0 0;
+  padding-left: 20px;
+  color: #d8cdbe;
+  line-height: 1.6;
+}
+
 .setting-stack {
   display: grid;
   gap: 16px;
@@ -546,7 +581,8 @@ button {
   }
 
   .topbar,
-  .layout-grid {
+  .layout-grid,
+  .seo-content {
     max-width: 760px;
   }
 
@@ -562,6 +598,11 @@ button {
     width: auto;
     max-height: 78vh;
     transform: none;
+  }
+
+  .seo-content {
+    margin-top: 16px;
+    padding: 18px;
   }
 }
 
